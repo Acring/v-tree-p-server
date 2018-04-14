@@ -5,7 +5,7 @@ import os
 import logging
 from werkzeug.datastructures import Headers
 from controller.translate import traslate
-
+from flask.ext.script import Manager
 
 test_model = None
 test_dictionary = None
@@ -34,6 +34,7 @@ class MyResponse(Response):
         return super(MyResponse, cls).force_type(rv, environ)
 
 app = Flask(__name__)
+manager = Manager(app)
 app.config['JSON_AS_ASCII'] = False
 app.response_class = MyResponse
 
@@ -116,6 +117,7 @@ def load_test_dic():
 
 
 if __name__ == '__main__':
+    manager.run()
     load_test_model()
     load_test_dic()
     app.run(debug=True)
