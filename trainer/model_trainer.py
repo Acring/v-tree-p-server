@@ -2,10 +2,12 @@
 from gensim import models
 import logging
 import os
-from cleaner.cleaner import WikiIterator
+from iterator.iterator import WikiIterator, TextIterator
+import csv
 """
 训练模型
 """
+
 
 
 class CorpusIterator(object):
@@ -98,8 +100,14 @@ class Trainer(object):
 
 
 def train_wiki():
-    wiki_iterator = WikiIterator()
+    wiki_iterator = WikiIterator('COCA20000.csv')
     manager = Trainer(wiki_iterator, 'enwiki')
+    manager.train_model()
+
+
+def train_test():
+    iterator = TextIterator('wiki_chinese_preprocessed.simplied.txt', 'COCA20000.csv')
+    manager = Trainer(iterator, 'test')
     manager.train_model()
 
 
@@ -109,12 +117,32 @@ def test_wiki():
             word = input()
             try:
                 print(model.wv.most_similar(word, topn=20))
-            except:
-                print('没有这个词啊——-')
+            except Exception as e:
+                print('没有这个词啊: {}'.format(e))
     manager = Trainer()
-    manager.load_model('test.model', bin=False)
+    manager.load_model('enwiki', bin=False)
     manager.test_model(test1)
 
+
+def test_by_lexicon(lex_name, model_name):
+    """
+    根据词库自动测试模型的好坏
+    :param lex_name:
+    :param model_name:
+    :return:
+    """
+    with open(os.path.join('..', 'lexicon', lex_name)) as f:
+        manager = Trainer()
+        manager.load_model(model_name)
+        model = manager.model
+
+        f_csv = csv.reader(f)
+        for row in f_csv:
+            word = row[1]
+            try:
+                print('word: {}, similar:{}', word, model.wv.most_similar(word, topn=10))
+            except Exception as e:
+                print('word: {}, {}'.format(word, e))
 if __name__ == '__main__':
-    logging.basicConfig(format='%(asctime)s : %(levelname)s : %(message)s', level=logging.INFO)
-    test_wiki()
+    logging.basicConfig(format='%(asctime)s : %(levelname)s : %(message)s', level=logging.DEBUG)
+    train_test()

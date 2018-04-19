@@ -4,8 +4,8 @@ import random
 import requests
 
 https_url = "https://openapi.youdao.com/api"  # Api的https地址
-app_key = "223abc56842b3d2d"  # 应用ID
-secret_key = "zfa16CDguP0VTTYHIsmlUBsG0IDYmzTx"  # 应用密钥
+app_key = "7e7bda78ce50ca93"  # 应用ID
+secret_key = "MKtBIvokcWPawPa0eBazUPBYb9VYoq3h"  # 应用密钥
 api_docs = "http://ai.youdao.com/docs/api.s#"  # 有道翻译api和说明文档
 language = {  # 语言转换表
     "zh-CHS": "中文",

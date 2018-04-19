@@ -4,11 +4,13 @@
 """
 词典训练器
 """
+import csv
 import os
 
 import logging
 from gensim import corpora
-from cleaner.cleaner import WikiIterator, TextIterator
+from iterator.iterator import WikiIterator, TextIterator
+from pyecharts import Line
 
 
 class DicTrainer:
@@ -23,15 +25,8 @@ class DicTrainer:
         document = []
         count = 0
         for line in self.iterator:
-            if not len(line):
-                continue
-            if len(line) == 1:
-                if document:
-                    documents.append(document)
-                    document = []
-                document.append(line[0])
-            if len(line) != 1:
-                document.extend(line)
+            logging.debug(line)
+            documents.append(line)
             if len(documents) == 10:
                 count += 1
                 logging.info('at documents #{}'.format(count * 10))
@@ -45,7 +40,7 @@ class DicTrainer:
         documents = []
         count = 0
         for line in self.iterator:
-            documents.append(line.split(" "))
+            documents.append(line)
             if len(documents) == 10:
                 count += 1
                 print('document #{}', count * 10)
@@ -57,35 +52,66 @@ class DicTrainer:
 
 
 def train_test():
-    iterator = TextIterator('wiki_chinese_preprocessed.simplied.txt')
+    iterator = TextIterator('wiki_chinese_preprocessed.simplied.txt', 'COCA20000.csv')
     trainer = DicTrainer(iterator)
     trainer.test_trainer()
 
 
 def train_wiki():
-    iterator = WikiIterator()
+    iterator = WikiIterator(lex_name='COCA20000.csv')
     trainer = DicTrainer(iterator)
     trainer.wiki_trainer()
 
 
 def test_wiki():
-    dic = corpora.Dictionary.load(os.path.join('..', 'dictionary', 'test'))
+    dic = corpora.Dictionary().load(os.path.join('..', 'dictionary', 'enwiki'))
+
     print(len(dic))
     # 按词出现文档的次个数对词进行排序
     while True:
+
         word = input()
+        try:
+            # 获取某个词的id
+            id = dic.token2id[word]
+            print('id:{}'.format(id))
 
-        # 获取某个词的id
-        id = dic.token2id[word]
-        print('id:{}'.format(id))
+            # 用id获取某个词
+            print(dic[id])
 
-        # 用id获取某个词
-        print(dic[id])
+            # 用id获取几个文档中出现过这个词
+            print(dic.dfs[id])
+            print(dic.dfs[id]/dic.num_docs)
+        except KeyError as e:
+            print('不存在单词: {}'.format(e))
 
-        # 用id获取几个文档中出现过这个词
-        print(dic.dfs[id])
-        print(dic.dfs[id]/len(dic))
+
+def test_by_lexicon(lex_name, dic_name):
+    with open(os.path.join('..', 'lexicon', lex_name)) as f:
+        dic = corpora.Dictionary.load(os.path.join('..', 'dictionary', dic_name))
+        f_csv = csv.reader(f)
+
+        for row in f_csv:
+            word = row[1]
+            try:
+                wid = dic.token2id[word]
+                print('id:{}, word:{}, dfs:{}, freq:{}'.format(wid, word, dic.dfs[wid], dic.dfs[wid]/dic.num_docs))
+            except KeyError as e:
+                print('word: {} 未被统计到'.format(word))
+
+        # for x in dic:
+        #     print(dic[x])
+
+
+def chart_by_lexicon(lex_name, dic_name, title):
+    with open(os.path.join('..', 'lexicon', lex_name)) as f:
+        dic = corpora.Dictionary.load(os.path.join('..', 'dictionary', dic_name))
+        f_csv = csv.reader(f)
+        sorted_dic = sorted(dic.dfs.items(), key=lambda x: x[1], reverse=True)[1000:2000]
+        line = Line(title)
+        line.add("词频分布", [dic[word[0]] for word in sorted_dic], [word[1]/dic.num_docs for word in sorted_dic], is_smooth=True)
+        line.render(os.path.join('..', 'charts', title+'.html'))
 
 if __name__ == '__main__':
-    logging.basicConfig(format='%(asctime)s : %(levelname)s : %(message)s', level=logging.INFO)
-    test_wiki()
+    logging.basicConfig(format='%(asctime)s : %(levelname)s : %(message)s', level=logging.DEBUG)
+    test_by_lexicon('COCA20000.csv', 'enwiki')
