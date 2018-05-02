@@ -5,7 +5,7 @@ import os
 import logging
 from werkzeug.datastructures import Headers
 from controller.translate import traslate
-from flask.ext.script import Manager
+from flask_script import Manager
 
 test_model = None
 test_dictionary = None
@@ -60,7 +60,7 @@ def req_test_model():
             return {'code': 1000, 'data': data}
         except Exception as e:
             return {'code': 1001, 'msg': '单词未收录:{}'.format(e)}
-    return {'code': '404', 'msg': '测试模型为空'}
+    return {'code': 404, 'msg': '测试模型为空'}
 
 
 @app.route('/test/word/info', methods=['GET'])
@@ -75,7 +75,13 @@ def req_test_dic():
     try:
         word_index = test_dictionary.token2id[word]
         count = test_dictionary.dfs[word_index]
-        return {'code': 1000, 'data': {'count': count}}
+
+        data = {
+            'index': word_index,
+            'count': count,
+            'freq': test_dictionary.dfs[word_index] / test_dictionary.num_docs
+        }
+        return {'code': 1000, 'data': data}
     except Exception as e:
         return {'code': 1001, 'msg': '单词不存在:{}'.format(e)}
 
@@ -91,33 +97,36 @@ def req_test_trans():
     return {'code': 1000, 'data': fb}
 
 
-def load_test_model():
+def load_test_model(model_name):
     """
     加载测试模型
     """
     global test_model
+    logging.info('loading model')
     try:
-        test_model = models.Word2Vec.load(os.path.join('.', 'model', 'test.model'))
+        test_model = models.Word2Vec.load(os.path.join('.', 'model', model_name))
         print(test_model)
     except Exception as e:
         logging.error("加载模型失败:{}".format(e))
         return
 
 
-def load_test_dic():
+def load_test_dic(dic_name):
     """
     加载测试词库
     """
     global test_dictionary
+    logging.info('loading dictionary')
     try:
-        test_dictionary = corpora.Dictionary.load(os.path.join('.', 'dictionary', 'test'))
+        test_dictionary = corpora.Dictionary.load(os.path.join('.', 'dictionary', dic_name))
         print(test_dictionary)
     except Exception as e:
         logging.error("加载词库失败:{}".format(e))
 
 
 if __name__ == '__main__':
+    logging.basicConfig(format='%(asctime)s : %(levelname)s : %(message)s', level=logging.DEBUG)
+    load_test_model('sub')
+    load_test_dic('test')
     manager.run()
-    load_test_model()
-    load_test_dic()
     app.run(debug=True)
